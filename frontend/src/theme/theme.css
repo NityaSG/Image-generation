@@ -1,0 +1,45 @@
+/* ICH-NEXT design tokens (mirrors the JSX prototype). */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+:root {
+  --c-bg: #faf9f7;
+  --c-surface: #f3f1ed;
+  --c-border: #e4e0d8;
+  --c-fg: #1a1714;
+  --c-muted: #8a8076;
+  --c-accent: #1a1714;
+  --c-accent2: #b5905a;
+  --font: "DM Sans", Helvetica, Arial, sans-serif;
+  --font-mono: "DM Mono", monospace;
+  --nav-h: 60px;
+}
+
+.dark {
+  --c-bg: #0e0d0b;
+  --c-surface: #1a1814;
+  --c-border: #2a2720;
+  --c-fg: #f0ece4;
+  --c-muted: #7a7469;
+}
+
+html, body, #root {
+  height: 100%;
+  font-family: var(--font);
+  background: var(--c-bg);
+  color: var(--c-fg);
+  -webkit-font-smoothing: antialiased;
+}
+
+* { transition: background-color 0.2s, color 0.2s, border-color 0.2s; }
+input, textarea, select, button { font-family: inherit; }
+select option { background: var(--c-bg); color: var(--c-fg); }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 3px; }
+
+.page-anim { animation: fadeIn 0.2s ease; }
