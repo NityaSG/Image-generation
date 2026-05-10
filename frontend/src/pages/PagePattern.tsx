@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { generate } from "../api/client";
+import { generate, vectorize } from "../api/client";
 import {
   ColorPicker,
   FormGrid,
@@ -35,6 +35,8 @@ export function PagePattern() {
   const [genLoading, setGenLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [genError, setGenError] = useState("");
+  const [svgLoading, setSvgLoading] = useState(false);
+  const [svgError, setSvgError] = useState("");
 
   useEffect(() => setPatMotif(null), [patFamily]);
 
@@ -54,6 +56,26 @@ export function PagePattern() {
       }),
     [description, patFamily, patMotif, directPattern, styleMode, hexPalette, repeatType],
   );
+
+  async function handleExportSvg() {
+    if (!result) return;
+    setSvgLoading(true);
+    setSvgError("");
+    try {
+      const svg = await vectorize({ src: result });
+      const blob = new Blob([svg], { type: "image/svg+xml" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "pattern.svg";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setSvgError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSvgLoading(false);
+    }
+  }
 
   async function handleGenerate() {
     if (!description.trim()) return;
@@ -210,6 +232,34 @@ export function PagePattern() {
             meta={{ repeatType, styleMode, size, quality }}
             onSaveToGallery={addToGallery}
           />
+          <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => void handleExportSvg()}
+              disabled={svgLoading}
+              style={{
+                padding: "7px 16px",
+                fontSize: 12,
+                fontWeight: 600,
+                border: "1px solid var(--c-border)",
+                borderRadius: 4,
+                background: "var(--c-surface)",
+                color: "var(--c-fg)",
+                cursor: svgLoading ? "wait" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              {svgLoading ? "Vectorizing…" : "Export as SVG"}
+            </button>
+            <span style={{ fontSize: 11, color: "var(--c-muted)" }}>
+              Opens in Adobe Illustrator &amp; Inkscape
+            </span>
+          </div>
+          {svgError && (
+            <p style={{ marginTop: 8, fontSize: 12, color: "#c00" }}>{svgError}</p>
+          )}
         </div>
       )}
     </PageWrapper>

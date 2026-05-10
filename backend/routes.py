@@ -38,6 +38,8 @@ from .schemas import (  # noqa: E402
     GenerateRequest,
     GenerateResponse,
     OptionsResponse,
+    VectorizeRequest,
+    VectorizeResponse,
 )
 
 
@@ -166,3 +168,44 @@ def gallery_delete(item_id: str) -> dict:
     if not storage.delete_item(item_id):
         raise HTTPException(status_code=404, detail="Not found")
     return {"deleted": item_id}
+
+
+# ---- Vectorize --------------------------------------------------------------
+
+@router.post("/vectorize", response_model=VectorizeResponse)
+def vectorize(req: VectorizeRequest) -> VectorizeResponse:
+    try:
+        import vtracer  # lazy import — optional dependency
+    except ImportError:
+        raise HTTPException(
+            status_code=501,
+            detail="vtracer is not installed. Run: pip install vtracer",
+        )
+
+    if req.gallery_id:
+        image_bytes = storage.get_image_bytes(req.gallery_id)
+        if image_bytes is None:
+            raise HTTPException(status_code=404, detail="Gallery item not found")
+    elif req.src:
+        try:
+            image_bytes, _ = storage._decode_data_url(req.src)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid image data URL: {e}") from e
+    else:
+        raise HTTPException(status_code=422, detail="Provide gallery_id or src")
+
+    try:
+        svg = vtracer.convert_raw_image_to_svg(
+            image_bytes,
+            colormode="color",
+            filter_speckle=req.filter_speckle,
+            color_precision=req.color_precision,
+            corner_threshold=req.corner_threshold,
+            length_threshold=req.length_threshold,
+            mode="spline",
+            layer_difference=16,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Vectorization failed: {e}") from e
+
+    return VectorizeResponse(svg=svg)

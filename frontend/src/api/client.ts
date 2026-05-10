@@ -90,3 +90,22 @@ export async function postGallery(input: {
 export async function deleteGalleryItem(id: string): Promise<void> {
   await request<{ deleted: string }>(`/gallery/${id}`, { method: "DELETE" });
 }
+
+// ---- Vectorize --------------------------------------------------------------
+
+export interface VectorizeParams {
+  gallery_id?: string;
+  src?: string;
+  filter_speckle?: number;
+  color_precision?: number;
+  corner_threshold?: number;
+  length_threshold?: number;
+}
+
+export async function vectorize(params: VectorizeParams): Promise<string> {
+  const res = await request<{ svg: string }>("/vectorize", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+  return res.svg;
+}

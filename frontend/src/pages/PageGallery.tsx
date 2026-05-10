@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { vectorize } from "../api/client";
 import type { GalleryItem } from "../api/types";
 import { useGallery } from "../theme/GalleryContext";
 
@@ -14,6 +15,27 @@ export function PageGallery() {
   const { gallery, clearGallery, removeFromGallery } = useGallery();
   const [filter, setFilter] = useState("all");
   const [lightbox, setLightbox] = useState<GalleryItem | null>(null);
+  const [svgLoading, setSvgLoading] = useState(false);
+  const [svgError, setSvgError] = useState("");
+
+  async function handleExportSvg(item: GalleryItem) {
+    setSvgLoading(true);
+    setSvgError("");
+    try {
+      const svg = await vectorize({ gallery_id: item.id });
+      const blob = new Blob([svg], { type: "image/svg+xml" });
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = `pattern-${item.id.slice(0, 8)}.svg`;
+      a.click();
+      URL.revokeObjectURL(href);
+    } catch (e) {
+      setSvgError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSvgLoading(false);
+    }
+  }
 
   const kinds = ["all", ...Array.from(new Set(gallery.map((i) => i.kind)))];
   const filtered = filter === "all" ? gallery : gallery.filter((i) => i.kind === filter);
@@ -205,57 +227,81 @@ export function PageGallery() {
                   {(lightbox.meta?.size as string) ?? ""} · {(lightbox.meta?.quality as string) ?? ""}
                 </p>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <a
-                  href={lightbox.src}
-                  download="generated.png"
-                  style={{
-                    padding: "7px 14px",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    background: "var(--c-accent)",
-                    color: "#fff",
-                    borderRadius: 3,
-                    textDecoration: "none",
-                  }}
-                >
-                  Download
-                </a>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirm("Delete this image?")) {
-                      void removeFromGallery(lightbox.id);
-                      setLightbox(null);
-                    }
-                  }}
-                  style={{
-                    padding: "7px 14px",
-                    fontSize: 12,
-                    background: "var(--c-surface)",
-                    border: "1px solid var(--c-border)",
-                    borderRadius: 3,
-                    cursor: "pointer",
-                    color: "var(--c-fg)",
-                  }}
-                >
-                  Delete
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLightbox(null)}
-                  style={{
-                    padding: "7px 14px",
-                    fontSize: 12,
-                    background: "var(--c-surface)",
-                    border: "1px solid var(--c-border)",
-                    borderRadius: 3,
-                    cursor: "pointer",
-                    color: "var(--c-fg)",
-                  }}
-                >
-                  Close
-                </button>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <a
+                    href={lightbox.src}
+                    download="generated.png"
+                    style={{
+                      padding: "7px 14px",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      background: "var(--c-accent)",
+                      color: "#fff",
+                      borderRadius: 3,
+                      textDecoration: "none",
+                    }}
+                  >
+                    Download PNG
+                  </a>
+                  {lightbox.kind === "pattern" && (
+                    <button
+                      type="button"
+                      onClick={() => void handleExportSvg(lightbox)}
+                      disabled={svgLoading}
+                      style={{
+                        padding: "7px 14px",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        background: "var(--c-surface)",
+                        border: "1px solid var(--c-accent)",
+                        borderRadius: 3,
+                        cursor: svgLoading ? "wait" : "pointer",
+                        color: "var(--c-accent)",
+                      }}
+                    >
+                      {svgLoading ? "Vectorizing…" : "Export SVG"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm("Delete this image?")) {
+                        void removeFromGallery(lightbox.id);
+                        setLightbox(null);
+                      }
+                    }}
+                    style={{
+                      padding: "7px 14px",
+                      fontSize: 12,
+                      background: "var(--c-surface)",
+                      border: "1px solid var(--c-border)",
+                      borderRadius: 3,
+                      cursor: "pointer",
+                      color: "var(--c-fg)",
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setLightbox(null); setSvgError(""); }}
+                    style={{
+                      padding: "7px 14px",
+                      fontSize: 12,
+                      background: "var(--c-surface)",
+                      border: "1px solid var(--c-border)",
+                      borderRadius: 3,
+                      cursor: "pointer",
+                      color: "var(--c-fg)",
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+                {svgError && (
+                  <p style={{ margin: 0, fontSize: 11, color: "#c00" }}>{svgError}</p>
+                )}
               </div>
             </div>
           </div>

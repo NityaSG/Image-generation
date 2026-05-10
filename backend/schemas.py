@@ -81,3 +81,18 @@ class GalleryAddRequest(BaseModel):
 
 class GalleryAddResponse(BaseModel):
     item: GalleryItem
+
+
+# ---- Vectorize --------------------------------------------------------------
+
+class VectorizeRequest(BaseModel):
+    gallery_id: Optional[str] = None    # use existing persisted image
+    src: Optional[str] = None           # data URL for in-memory images
+    filter_speckle: int = Field(4, ge=1, le=16)
+    color_precision: int = Field(6, ge=1, le=8)
+    corner_threshold: int = Field(60, ge=1, le=180)
+    length_threshold: float = Field(4.0, ge=1.0, le=10.0)
+
+
+class VectorizeResponse(BaseModel):
+    svg: str                            # raw SVG markup
